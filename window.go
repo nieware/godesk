@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+	"time"
+)
 
 // WUID is the (hopefully) unique ID of a window
 type WUID = string
@@ -13,17 +17,23 @@ type Window struct {
 	DesktopID int32    // desktop ID (-1 = all desktops)
 	ProcessID int32    // process ID
 	Machine   string   // Machine Name
-	Titles    []string // All titles we have seen for this window
+	Titles    []string // All "stable" titles we have seen for this window
+	State     string   // e.g. "_NET_WM_STATE_MODAL", "_NET_WM_STATE_MAXIMIZED_VERT, _NET_WM_STATE_MAXIMIZED_HORZ"
+
+	cTitle   string    // current title
+	cTitleTS time.Time // timestamp where current title was first seen
 }
 
-// WindowFromWMCTRLWindow creates a new Window object based on a given WMCTRLWindow
-func WindowFromWMCTRLWindow(ww WMCTRLWindow) Window {
+// WindowFromWMCTRLWindow creates a new Window object based on a given WMCTRLWindow.
+// The state string must be provided separately, since it's not part of wmctrl's output.
+func WindowFromWMCTRLWindow(ww WMCTRLWindow, state string) Window {
 	return Window{
 		WindowID:  ww.WindowID,
 		DesktopID: ww.DesktopID,
 		ProcessID: ww.ProcessID,
 		Machine:   ww.Machine,
 		Titles:    []string{ww.Title},
+		State:     state,
 	}
 }
 
@@ -35,6 +45,11 @@ func (w *Window) HasTitle(title string) bool {
 		}
 	}
 	return false
+}
+
+// HasState checks if the State string contains the specified state as a substring
+func (w *Window) HasState(state string) bool {
+	return strings.Contains(w.State, state)
 }
 
 // AddTitle adds the given title to a Window's Titles

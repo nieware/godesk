@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"strings"
 )
 
 // Windows is a list that stores all windows currently known to our application,
@@ -47,10 +48,22 @@ func (ws Windows) Refresh() {
 	}
 }
 
+func (ws Windows) WindowShouldBeIgnored(w Window) bool {
+	return w.HasState("_NET_WM_STATE_MODAL")
+}
+
 // HandleNewWindow adds a newly created window to the list and
 // places it on the correct desktop.
 func (ws Windows) HandleNewWindow(ww WMCTRLWindow) {
-	addW := WindowFromWMCTRLWindow(ww)
+	state := getWindowState(ww.WindowID)
+	addW := WindowFromWMCTRLWindow(ww, state)
+
+	// some windows should not be moved - e.g. modal dialogs, because they belong to their parent window
+	if ws.WindowShouldBeIgnored(addW) {
+		fmt.Println("Ignoring", addW, "state is", addW.State)
+		return
+	}
+
 	// if we have a matching non-current window, move it to the correct desktop!
 	w, found := ws.FindWindowByTitle(ww.Title, true)
 	if found {
@@ -72,13 +85,17 @@ func (ws Windows) HandleNewWindow(ww WMCTRLWindow) {
 // FindWindowByTitle returns the first window that has the given title in its slice of Titles.
 // If excludeCurrent is true, windows that are currently open (w.Current == true) are not considered.
 func (ws Windows) FindWindowByTitle(title string, excludeCurrent bool) (w Window, found bool) {
+	if strings.TrimSpace(title) == "" {
+		// ignore empty titles
+		return
+	}
+
 	for _, w = range ws {
 		if (!w.Current || w.Current && !excludeCurrent) && w.HasTitle(title) {
 			found = true
 			return
 		}
 	}
-	found = false
 	return
 }
 

@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 )
 
-// Calls wmctrl and processes its output.
+// Calls external apps (wmctrl, xprop) and processes their output.
 // One day, this might talk directly to the windows manager.
 
 // WMCTRLWindow is the internal representation of windows returned by wmctrl
@@ -29,15 +27,6 @@ func (ww WMCTRLWindow) UID() WUID {
 
 func (ww WMCTRLWindow) String() string {
 	return "[" + ww.UID() + "]"
-}
-
-func execCmd(name string, arg ...string) string {
-	//fmt.Println("execCmd:", name, arg)
-	out, err := exec.Command(name, arg...).Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(out)
 }
 
 func getWindowListFromWMCTRLOutput(out string) map[WUID]WMCTRLWindow {
